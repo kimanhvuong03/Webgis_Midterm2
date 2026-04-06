@@ -4,34 +4,36 @@
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
-        <title>WebGIS - Vương Thị Kim Anh</title>
-        <link rel="stylesheet" href="css/leaflet.css">
-        <link rel="stylesheet" href="css/qgis2web.css">
-        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <title>WebGIS Hanoi - Vương Thị Kim Anh</title>
+        
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
         <style>
             html, body, #map { width: 100%; height: 100%; padding: 0; margin: 0; }
-            /* Khung tiêu đề theo yêu cầu của thầy */
+            
+            /* Khung tiêu đề đúng yêu cầu */
             #header-title {
                 position: absolute;
                 top: 15px;
                 left: 50%;
                 transform: translateX(-50%);
                 z-index: 1000;
-                background: rgba(255, 255, 255, 0.9);
-                padding: 10px 20px;
+                background: white;
+                padding: 12px 25px;
                 border: 2px solid #000;
-                border-radius: 4px;
                 text-align: center;
                 font-family: "Times New Roman", Times, serif;
-                min-width: 400px;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
             }
-            .my-label {
+            
+            /* Style cho nhãn tên huyện */
+            .district-label {
                 background: transparent;
                 border: none;
                 box-shadow: none;
                 font-weight: bold;
                 color: black;
-                text-shadow: 1px 1px 2px white; /* Tạo hiệu ứng white halo cho chữ đen */
+                font-size: 11px;
+                text-shadow: 1px 1px 2px white;
             }
         </style>
     </head>
@@ -44,42 +46,24 @@
                 2106080018 - Vương Thị Kim Anh
             </div>
         </div>
-        
+
         <div id="map"></div>
 
-        <script src="js/qgis2web_expressions.js"></script>
-        <script src="js/leaflet.js"></script>
-        <script src="js/Autolinker.min.js"></script>
-        <script src="layers/gadm41_VNM_2_virtual_1.js"></script>
+        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+        
+        <script src="layers/gadm41_VNM_2virtual_4.js"></script>
 
         <script>
         var map = L.map('map', {
             zoomControl:true, maxZoom:28, minZoom:1
-        }).fitBounds([[20.53, 105.28],[21.45, 106.10]]);
+        }).fitBounds([[20.5, 105.2],[21.5, 106.2]]);
 
-        // 1. Background layer: OpenStreetMap
-        var layer_OSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // Lớp nền OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: 'OpenStreetMap'
         }).addTo(map);
 
-        // 2. Hiển thị nhãn tên các đơn vị (Labels)
-        function onEachFeature(feature, layer) {
-            if (feature.properties && feature.properties.NAME_2) {
-                layer.bindTooltip(feature.properties.NAME_2, {
-                    permanent: true, // Luôn hiện nhãn
-                    direction: 'center',
-                    className: 'my-label'
-                });
-            }
-            // Nội dung Popup khi click vào huyện
-            var popupContent = '<table>\
-                    <tr><td colspan="2"><strong>Huyện:</strong> ' + (feature.properties['NAME_2'] || '') + '</td></tr>\
-                    <tr><td colspan="2"><strong>Số giáo viên:</strong> ' + (feature.properties['GiaoVien_Num'] || '0') + '</td></tr>\
-                </table>';
-            layer.bindPopup(popupContent, {maxHeight: 400});
-        }
-
-        // 3. Phân màu (Graduated Symbology) từ Q1
+        // Màu sắc phân cấp (Graduated)
         function getColor(d) {
             return d > 1287 ? '#800026' :
                    d > 1034 ? '#BD0026' :
@@ -90,34 +74,46 @@
 
         function styleHanoi(feature) {
             return {
-                fillColor: getColor(feature.properties.GiaoVien_Num), // Tên cột số lượng
+                fillColor: getColor(feature.properties.GiaoVien_Num), // Tên cột số liệu
                 weight: 1.5,
                 opacity: 1,
                 color: 'white',
-                fillOpacity: 0.7
+                fillOpacity: 0.8
             };
         }
 
-        // 4. Nạp lớp dữ liệu Hà Nội
-        var layer_Hanoi = L.geoJson(json_gadm41_VNM_2_virtual_1, {
+        // Hiện nhãn tên huyện (Labels)
+        function onEachFeature(feature, layer) {
+            if (feature.properties && feature.properties.NAME_2) {
+                layer.bindTooltip(feature.properties.NAME_2, {
+                    permanent: true,
+                    direction: 'center',
+                    className: 'district-label'
+                });
+            }
+        }
+
+        // Nạp dữ liệu. Chú ý: json_... phải khớp với tên biến trong file .js của bạn
+        var layer_Hanoi = L.geoJson(json_gadm41_VNM_2virtual_4, {
             style: styleHanoi,
             onEachFeature: onEachFeature
         }).addTo(map);
 
-        // 5. Chú giải (Legend) ở góc trên bên phải
+        // Chú giải (Legend) ở góc trên bên phải
         var legend = L.control({position: 'topright'});
         legend.onAdd = function (map) {
-            var div = L.DomUtil.create('div', 'info legend'),
-                grades = [369, 570, 755, 1034, 1287],
-                labels = ['<strong>Teacher Count</strong>'];
+            var div = L.DomUtil.create('div', 'info legend');
+            var grades = [369, 570, 755, 1034, 1287];
+            div.style.background = 'white';
+            div.style.padding = '10px';
+            div.style.lineHeight = '20px';
+            div.style.border = '1px solid black';
+            div.innerHTML = '<b>Teacher Count</b><br>';
             for (var i = 0; i < grades.length; i++) {
                 div.innerHTML +=
-                    '<i style="background:' + getColor(grades[i] + 1) + '; width: 18px; height: 18px; display: inline-block; margin-right: 5px; vertical-align: middle;"></i> ' +
+                    '<i style="background:' + getColor(grades[i] + 1) + '; width:15px; height:15px; display:inline-block; vertical-align:middle;"></i> ' +
                     grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
             }
-            div.style.padding = '10px';
-            div.style.background = 'white';
-            div.style.lineHeight = '24px';
             return div;
         };
         legend.addTo(map);
